@@ -118,6 +118,7 @@ try:
         # --- Send event if state changed ---
         if detected_state != current_state:
             current_state = detected_state
+            print(current_state)
             send_event(current_state)
 
 
