@@ -3,6 +3,9 @@ import numpy as np
 import requests
 import time
 
+device_id = 19
+
+
 # --- Settings ---
 FS = 44100              # Sample rate
 THRESHOLD = 0.35        # Ignore quiet sounds
@@ -64,7 +67,7 @@ print("Listening... Press Ctrl+C to stop")
 try:
     while True:
         # Record 1 second of audio
-        audio = sd.rec(int(FS * CHUNK_DURATION), samplerate=FS, channels=1)
+        audio = sd.rec(int(FS * CHUNK_DURATION), samplerate=FS, channels=1, device = device_id)
         sd.wait()
         audio = audio.flatten()
 
@@ -77,7 +80,7 @@ try:
         else:
             # Compute FFT
             fft_data = np.abs(np.fft.rfft(audio))
-            fft_freq = np.fft.rfftfreq(len(audio), d=1/fs)
+            fft_freq = np.fft.rfftfreq(len(audio), d=1/FS)
 
             # --- Siren Detection ---
             siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
