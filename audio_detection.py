@@ -23,6 +23,10 @@ BACKEND_URL = "http://localhost:8080/event"
 # State tracking
 current_state = "idle" # possible values: "idle", siren", "fire"
 
+# Idle buffer (seconds)
+IDLE_BUFFER = 3
+last_detected_time = time.time() # time when siren/fire was last detected
+
 # Mapping Python state -> backend type
 STATE_TO_TYPE = {
     "idle": "IDLE",
@@ -56,7 +60,7 @@ try:
             siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
             speech_energy = np.sum(fft_data[(fft_freq > SPEECH_BAND[0]) & (fft_freq < SPEECH_BAND[1])])
 
-            if siren_energy > 3 * speech_energy: #tweak this factor if needed
+            if siren_energy > 2.5 * speech_energy: #tweak this factor if needed
                 siren_hits += 1
             else:
                 siren_hits = 0
@@ -65,7 +69,7 @@ try:
             fire_energy = np.sum(fft_data[(fft_freq > FIRE_BAND[0]) & (fft_freq < FIRE_BAND[1])])
             total_energy = np.sum(fft_data)
 
-            if fire_energy > 0.3 * total_energy: 
+            if fire_energy > 0.25 * total_energy: 
                 fire_hits += 1
             else:
                 fire_hits = 0
@@ -73,10 +77,20 @@ try:
             # Decide current detected state
             if fire_hits >= 2:
                 detected_state = "fire"
-            elif siren_hits >= 4:
+            elif siren_hits >= 3:
                 detected_state = "siren"
             else:
                 detected_state = "idle"
+
+            # Update Last detected time if an alarm is active
+            if detected_state in ["fire", "siren"]:
+                last_detected_time = time.time()
+        
+        # --- Apply idle buffer ---
+        if detected_state == "idle":
+            if time.time() - last_detected_time < IDLE_BUFFER:
+                #still within buffer, keep previous state
+                detected_state = current_state
         
         # --- Send event if state changed ---
         if detected_state != current_state:
