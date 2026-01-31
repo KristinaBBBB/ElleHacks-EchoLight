@@ -17,12 +17,18 @@ FIRE_BAND = (3000, 4000)
 siren_hits = 0
 fire_hits = 0
 
-# Backend APE endpoint (replace with actual endpoint)
+# Backend APE endpoint 
 BACKEND_URL = "http://localhost:8080/event"
 
-# Cooldown (seconds)
-COOLDOWN_SECONDS = 5
-last_event_time = 0
+# State tracking
+current_state = "idle" # possible values: "idle", siren", "fire"
+
+# Mapping Python state -> backend type
+STATE_TO_TYPE = {
+    "idle": "IDLE",
+    "siren": "SIREN_ALARM",
+    "fire": "FIRE_ALARM"
+}
 
 print("Listening... Press Ctrl+C to stop")
 
@@ -39,50 +45,51 @@ try:
         if max_amp < threshold:
             siren_hits = 0
             fire_hits = 0
-            continue # skip quiet chunks
-
-        # Compute FFT
-        fft_data = np.abs(np.fft.rfft(audio))
-        fft_freq = np.fft.rfftfreq(len(audio), d=1/fs)
-
-        # --- Siren Detection ---
-        # Check if most energy is in high-frequency range (e.g., 500-2000Hz)
-        siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
-        speech_energy = np.sum(fft_data[(fft_freq > SPEECH_BAND[0]) & (fft_freq < SPEECH_BAND[1])])
-
-        if siren_energy > 3 * speech_energy: #tweak this factor if needed
-            siren_hits += 1
+            detected_state = "idle"
         else:
-            siren_hits = 0
+            # Compute FFT
+            fft_data = np.abs(np.fft.rfft(audio))
+            fft_freq = np.fft.rfftfreq(len(audio), d=1/fs)
 
-        if siren_hits >= 4 and current_time - last_event_time > COOLDOWN_SECONDS:
-            print("SIREN DETECTED")
-            # Send event to backend
-            try:
-                requests.post(BACKEND_URL, json={"event": "siren"})
-                last_event_time = current_time
-            except Exception as e:
-                print("Failed to send to backend: ", e)
-            siren_hits = 0
+            # --- Siren Detection ---
+            # Check if most energy is in high-frequency range (e.g., 500-2000Hz)
+            siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
+            speech_energy = np.sum(fft_data[(fft_freq > SPEECH_BAND[0]) & (fft_freq < SPEECH_BAND[1])])
+
+            if siren_energy > 3 * speech_energy: #tweak this factor if needed
+                siren_hits += 1
+            else:
+                siren_hits = 0
         
-        # --- Fire Alarm Detection ---
-        fire_energy = np.sum(fft_data[(fft_freq > FIRE_BAND[0]) & (fft_freq < FIRE_BAND[1])])
-        total_energy = np.sum(fft_data)
+            # --- Fire Alarm Detection ---
+            fire_energy = np.sum(fft_data[(fft_freq > FIRE_BAND[0]) & (fft_freq < FIRE_BAND[1])])
+            total_energy = np.sum(fft_data)
 
-        if fire_energy > 0.3 * total_energy: 
-            fire_hits += 1
-        else:
-            fire_hits = 0
+            if fire_energy > 0.3 * total_energy: 
+                fire_hits += 1
+            else:
+                fire_hits = 0
 
-        if fire_hits >= 2 and current_time - last_event_time > COOLDOWN_SECONDS:
-            print("FIRE ALARM DETECTED")
-            # Send event to backend
+            # Decide current detected state
+            if fire_hits >= 2:
+                detected_state = "fire"
+            elif siren_hits >= 4:
+                detected_state = "siren"
+            else:
+                detected_state = "idle"
+        
+        # --- Send event if state changed ---
+        if detected_state != current_state:
+            current_state = detected_state
+            backend_payload = {
+                "type": STATE_TO_TYPE[current_state],
+                "ts": 0
+            }
             try:
-                requests.post(BACKEND_URL, json={"event": "fire"})
-                last_event_time = current_time
+                requests.post(BACKEND_URL, json=backend_payload)
+                print(f"Sent event: {backend_payload['type']}")
             except Exception as e:
-                print("Failed to send to backend: ", e)
-            fire_hits = 0
+                print("Failed to send event to backend: ", e)
 
 
 except KeyboardInterrupt:
