@@ -1,0 +1,147 @@
+/* ─── RESET & VARIABLES ─── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #0a0e14;
+  --surface: #111821;
+  --surface-alt: #161e2e;
+  --border: #1f2d45;
+  --text: #c8d6e8;
+  --text-dim: #5a6b82;
+  --accent: #3b8cff;
+  --siren-color: #ff3a3a;
+  --horn-color: #ffb832;
+  --fire-color: #ff6b2b;
+  --green: #2ecc71;
+  --radius: 12px;
+}
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ─── FULL-SCREEN FLASH OVERLAY ─── */
+#flash-overlay {
+  position: fixed; inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s ease-out;
+  background: var(--siren-color);
+}
+#flash-overlay.active { opacity: 0.55; }
+
+/* ─── ALERT BANNER ─── */
+#alert-banner {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 90;
+  background: var(--siren-color);
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 14px 20px;
+  transform: translateY(-110%);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+}
+#alert-banner.active { transform: translateY(0); }
+#alert-banner .banner-icon { font-size: 1.8rem; }
+
+/* ─── LAYOUT ─── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 100vh;
+  gap: 0;
+}
+
+/* ─── MAIN DETECTION PANEL ─── */
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  position: relative;
+  gap: 48px;
+}
+
+/* Listening badge */
+.status-badge {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(46,204,113,0.08);
+  border: 1px solid rgba(46,204,113,0.25);
+  border-radius: 30px;
+  padding: 8px 18px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.status-badge .pulse-dot {
+  width: 9px; height: 9px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse-dot 1.6s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+.status-badge.off { color: var(--text-dim); background: rgba(90,107,130,0.1); border-color: rgba(90,107,130,0.2); }
+.status-badge.off .pulse-dot { background: var(--text-dim); animation: none; }
+
+/* Detection display */
+.detection-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.icon-ring {
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+}
+.icon-ring .icon-inner {
+  font-size: 5rem;
+  transition: transform 0.3s;
+}
+.icon-ring.alert {
+  animation: ring-pulse 0.4s ease-out 3;
+}
+@keyframes ring-pulse {
+  0%   { box-shadow: 0 0 0 0 currentColor; }
+  70%  { box-shadow: 0 0 0 28px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.icon-ring.alert-siren   { border-color: var(--siren-color); color: var(--siren-color); background: rgba(255,58,58,0.07); box-shadow: 0 0 60px rgba(255,58,58,0.18); }
+.icon-ring.alert-horn    { border-color: var(--horn-color);  color: var(--horn-color);  background: rgba(255,184,50,0.07); box-shadow: 0 0 60px rgba(255,184,50,0.18); }
+.icon-ring.alert-fire    { border-color: var(--fire-color);  color: var(--fire-color);  background: rgba(255,107,43,0.07); box-shadow: 0 0 60px rgba(255,107,43,0.18); }
+
+.detection-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  transition: color 0.3s;
+}
+.detection-label.siren { color: var(--siren-color); }
+.detection-label.horn  { color: var(--horn-color); }
+.detection-label.fire  { color: var(--fire-color); }
