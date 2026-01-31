@@ -3,7 +3,7 @@ import numpy as np
 import requests
 import time
 
-device_id = 19
+device_id = 7
 
 
 # --- Settings ---
@@ -12,7 +12,7 @@ THRESHOLD = 0.35        # Ignore quiet sounds
 CHUNK_DURATION = 1      # Seconds per audio chunk
 
 # Frequency bands (Hz)
-SIREN_BAND = (800, 1200)
+SIREN_BAND = (700, 1300)
 SPEECH_BAND = (100, 500)
 FIRE_BAND = (3000, 4000)
 
@@ -73,6 +73,10 @@ try:
 
         max_amp = np.max(np.abs(audio))
 
+        # Initialize for debug
+        siren_energy = 0
+        fire_energy = 0
+
         if max_amp < THRESHOLD:
             siren_hits = 0
             fire_hits = 0
@@ -86,7 +90,7 @@ try:
             siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
             speech_energy = np.sum(fft_data[(fft_freq > SPEECH_BAND[0]) & (fft_freq < SPEECH_BAND[1])])
 
-            if siren_energy > 2.5 * speech_energy: #tweak this factor if needed
+            if siren_energy > 2.0 * speech_energy: #tweak this factor if needed
                 siren_hits += 1
             else:
                 siren_hits = 0
@@ -123,7 +127,8 @@ try:
             current_state = detected_state
             print(current_state)
             send_event(current_state)
-
-
+        
+        print(f"Max amp: {max_amp:.3f}, Siren energy: {siren_energy:.1f}, Fire energy: {fire_energy:.1f}, Detected: {detected_state}")
+       
 except KeyboardInterrupt:
     print("\nStopped by user")
