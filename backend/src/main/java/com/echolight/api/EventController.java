@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @RestController
 @RequestMapping("/api")
 public class EventController {
-
+    @CrossOrigin(origins = "*")
     private final List<SseEmitter> clients = new CopyOnWriteArrayList<>();
     private volatile DetectionEvent lastEvent = new DetectionEvent("HOME", System.currentTimeMillis());
 

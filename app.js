@@ -102,3 +102,50 @@ function clearAlert() {
   label.style.color = "";
   label.textContent = "Awaiting Sound…";
 }
+
+// --- SSE client: listen to backend event stream and trigger UI ---
+(function setupSSE(){
+  const url = 'http://localhost:8080/api/stream';
+  let retry = 1000;
+
+  function connect() {
+    const es = new EventSource(url);
+
+    es.onopen = () => {
+      console.log('SSE connected');
+      retry = 1000;
+      const statusText = document.getElementById('status-text');
+      if (statusText) statusText.textContent = 'Connected';
+    };
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        const type = data.type;
+        // Map backend event types to frontend alert ids
+        if (type === 'SIREN_ALARM') {
+          if (state.enabled.siren) fireAlert('siren');
+        } else if (type === 'FIRE_ALARM') {
+          if (state.enabled.fire) fireAlert('fire');
+        } else if (type === 'IDLE' || type === 'HOME') {
+          clearAlert();
+        }
+      } catch (err) {
+        console.warn('Failed parsing SSE message', err, e.data);
+      }
+    };
+
+    es.onerror = () => {
+      console.warn('SSE error — attempting reconnect');
+      const statusText = document.getElementById('status-text');
+      if (statusText) statusText.textContent = 'Disconnected';
+      try { es.close(); } catch(_) {}
+      setTimeout(() => {
+        retry = Math.min(30000, retry * 2);
+        connect();
+      }, retry);
+    };
+  }
+
+  connect();
+})();
