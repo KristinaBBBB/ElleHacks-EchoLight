@@ -1,5 +1,7 @@
 import sounddevice as sd
 import numpy as np
+import requests
+import time
 
 #Settings
 fs = 44100 # sample rate
@@ -14,6 +16,13 @@ FIRE_BAND = (3000, 4000)
 # Persistence counters
 siren_hits = 0
 fire_hits = 0
+
+# Backend APE endpoint (replace with actual endpoint)
+BACKEND_URL = "http://localhost:8080/event"
+
+# Cooldown (seconds)
+COOLDOWN_SECONDS = 5
+last_event_time = 0
 
 print("Listening... Press Ctrl+C to stop")
 
@@ -46,8 +55,14 @@ try:
         else:
             siren_hits = 0
 
-        if siren_hits >= 4:
+        if siren_hits >= 4 and current_time - last_event_time > COOLDOWN_SECONDS:
             print("SIREN DETECTED")
+            # Send event to backend
+            try:
+                requests.post(BACKEND_URL, json={"event": "siren"})
+                last_event_time = current_time
+            except Exception as e:
+                print("Failed to send to backend: ", e)
             siren_hits = 0
         
         # --- Fire Alarm Detection ---
@@ -59,8 +74,14 @@ try:
         else:
             fire_hits = 0
 
-        if fire_hits >= 2:
+        if fire_hits >= 2 and current_time - last_event_time > COOLDOWN_SECONDS:
             print("FIRE ALARM DETECTED")
+            # Send event to backend
+            try:
+                requests.post(BACKEND_URL, json={"event": "fire"})
+                last_event_time = current_time
+            except Exception as e:
+                print("Failed to send to backend: ", e)
             fire_hits = 0
 
 
