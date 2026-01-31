@@ -20,7 +20,7 @@ print("Listening... Press Ctrl+C to stop")
 try:
     while True:
         # Record 1 second of audio
-        audio = sd.rec(int(fs * chunk_duration), samplerate=fs, channels=1)
+        audio = sd.rec(int(fs * chunk_duration), samplerate=fs, channels=1, device=7) # remove device=7 after
         sd.wait()
         audio = audio.flatten() # convert from 2D array to 1D
 
