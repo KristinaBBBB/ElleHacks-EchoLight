@@ -3,10 +3,10 @@ import numpy as np
 import requests
 import time
 
-#Settings
-fs = 44100 # sample rate
-threshold = 0.35 # amplitude threshold to ignore quiet sounds
-chunk_duration = 1 #seconds per audio chunk
+# --- Settings ---
+FS = 44100              # Sample rate
+THRESHOLD = 0.35        # Ignore quiet sounds
+CHUNK_DURATION = 1      # Seconds per audio chunk
 
 # Frequency bands (Hz)
 SIREN_BAND = (800, 1200)
@@ -18,14 +18,13 @@ siren_hits = 0
 fire_hits = 0
 
 # Backend APE endpoint 
-BACKEND_URL = "http://localhost:8080/event"
+BACKEND_URL = "http://localhost:8080/api/events"
 
 # State tracking
-current_state = "idle" # possible values: "idle", siren", "fire"
+current_state = "idle" # "idle", "siren", "fire"
+last_detected_time = time.time()        # time when siren/fire was last detected
+IDLE_BUFFER = 3                         # seconds to keep alarm displayed after sound dips
 
-# Idle buffer (seconds)
-IDLE_BUFFER = 3
-last_detected_time = time.time() # time when siren/fire was last detected
 
 # Mapping Python state -> backend type
 STATE_TO_TYPE = {
@@ -34,19 +33,44 @@ STATE_TO_TYPE = {
     "fire": "FIRE_ALARM"
 }
 
+# --- Helper functions ---
+def sanity_check_backend():
+    """Check if backend is running before starting."""
+    try:
+        r = requests.get("http://localhost:8080/api/health", timeout=2)
+        if r.status_code == 200:
+            print("Backend is running")
+            return True
+    except Exception:
+        pass
+    print("Backend not reachable. Make sure it is running.")
+    return False
+
+def send_event(state):
+    """Send state change event to backend."""
+    payload = {"type": STATE_TO_TYPE[state], "ts": 0}
+    try:
+        requests.post(BACKEND_URL, json=payload)
+        print(f"Sent event: {payload['type']}")
+    except Exception as e:
+        print("Failed to send event to backend:", e)
+
+# --- Main Loop ---
+if not sanity_check_backend():
+    exit(1)
+
 print("Listening... Press Ctrl+C to stop")
 
 try:
     while True:
         # Record 1 second of audio
-        audio = sd.rec(int(fs * chunk_duration), samplerate=fs, channels=1)
+        audio = sd.rec(int(FS * CHUNK_DURATION), samplerate=FS, channels=1)
         sd.wait()
-        audio = audio.flatten() # convert from 2D array to 1D
+        audio = audio.flatten()
 
         max_amp = np.max(np.abs(audio))
 
-        # skip quiet sounds
-        if max_amp < threshold:
+        if max_amp < THRESHOLD:
             siren_hits = 0
             fire_hits = 0
             detected_state = "idle"
@@ -56,7 +80,6 @@ try:
             fft_freq = np.fft.rfftfreq(len(audio), d=1/fs)
 
             # --- Siren Detection ---
-            # Check if most energy is in high-frequency range (e.g., 500-2000Hz)
             siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
             speech_energy = np.sum(fft_data[(fft_freq > SPEECH_BAND[0]) & (fft_freq < SPEECH_BAND[1])])
 
@@ -95,15 +118,7 @@ try:
         # --- Send event if state changed ---
         if detected_state != current_state:
             current_state = detected_state
-            backend_payload = {
-                "type": STATE_TO_TYPE[current_state],
-                "ts": 0
-            }
-            try:
-                requests.post(BACKEND_URL, json=backend_payload)
-                print(f"Sent event: {backend_payload['type']}")
-            except Exception as e:
-                print("Failed to send event to backend: ", e)
+            send_event(current_state)
 
 
 except KeyboardInterrupt:
