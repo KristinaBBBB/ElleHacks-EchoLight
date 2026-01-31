@@ -3,10 +3,19 @@ import numpy as np
 
 #Settings
 fs = 44100 # sample rate
-threshold = 0.2 # amplitude threshold to ignore quiet sounds
+threshold = 0.35 # amplitude threshold to ignore quiet sounds
 chunk_duration = 1 #seconds per audio chunk
 
-print("Press Ctrl+C to stop")
+# Frequency bands (Hz)
+SIREN_BAND = (800, 1200)
+SPEECH_BAND = (100, 500)
+FIRE_BAND = (3000, 4000)
+
+# Persistence counters
+siren_hits = 0
+fire_hits = 0
+
+print("Listening... Press Ctrl+C to stop")
 
 try:
     while True:
@@ -16,22 +25,44 @@ try:
         audio = audio.flatten() # convert from 2D array to 1D
 
         max_amp = np.max(np.abs(audio))
-        if max_amp > threshold:
+
+        # skip quiet sounds
+        if max_amp < threshold:
+            siren_hits = 0
+            fire_hits = 0
             continue # skip quiet chunks
 
         # Compute FFT
-        fft_data = np.fft.rfft(audio)
+        fft_data = np.abs(np.fft.rfft(audio))
         fft_freq = np.fft.rfftfreq(len(audio), d=1/fs)
 
-        # Simple siren detection:
+        # --- Siren Detection ---
         # Check if most energy is in high-frequency range (e.g., 500-2000Hz)
-        high_freq_energy = np.sum(np.abs(fft_data[(fft_freq > 500) & (fft_freq < 2000)]))
-        low_freq_energy = np.sum(np.abs(fft_data[(fft_freq > 100) & (fft_freq <= 500)]))
+        siren_energy = np.sum(fft_data[(fft_freq > SIREN_BAND[0]) & (fft_freq < SIREN_BAND[1])])
+        speech_energy = np.sum(fft_data[(fft_freq > SPEECH_BAND[0]) & (fft_freq < SPEECH_BAND[1])])
 
-        if high_freq_energy > 1.5 * low_freq_energy: #tweak this factor if needed
-            print("SIREN DETECTED")
+        if siren_energy > 3 * speech_energy: #tweak this factor if needed
+            siren_hits += 1
         else:
-            print("Loud sound, but not a siren")
+            siren_hits = 0
+
+        if siren_hits >= 4:
+            print("SIREN DETECTED")
+            siren_hits = 0
+        
+        # --- Fire Alarm Detection ---
+        fire_energy = np.sum(fft_data[(fft_freq > FIRE_BAND[0]) & (fft_freq < FIRE_BAND[1])])
+        total_energy = np.sum(fft_data)
+
+        if fire_energy > 0.3 * total_energy: 
+            fire_hits += 1
+        else:
+            fire_hits = 0
+
+        if fire_hits >= 2:
+            print("FIRE ALARM DETECTED")
+            fire_hits = 0
+
 
 except KeyboardInterrupt:
     print("\nStopped by user")
