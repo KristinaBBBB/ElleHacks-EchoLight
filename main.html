@@ -17,9 +17,11 @@
     </div>
     
     <div class="main-panel">
-        <div class="status-badge on" id="status-badge">
+
+        <div class="status-badge off" id="status-badge">
             <span class="pulse-dot"></span>
-            <span id="status-text">Listening</span>
+            <span id="status-text">Stopped</span>
+
         </div>
 
         <div class="detection-display">
@@ -27,6 +29,9 @@
                 <span class="icon-inner" id="icon-inner">👂</span>
             </div>
             <div class="detection-label" id="detection-label">Awaiting Sound…</div>
+
+            <button id="toggle-btn" class="toggle-btn">Start</button>
+
         </div>
     </div>
 </body>

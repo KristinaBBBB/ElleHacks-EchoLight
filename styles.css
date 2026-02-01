@@ -145,3 +145,44 @@ body {
 .detection-label.siren { color: var(--siren-color); }
 .detection-label.horn  { color: var(--horn-color); }
 .detection-label.fire  { color: var(--fire-color); }
+
+
+/* --- Start/Stop toggle button (cool design) --- */
+.toggle-btn {
+  margin-top: 8px;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b1020;
+  background: linear-gradient(135deg, #6dd3ff 0%, #6bd3a6 50%, #ffd36b 100%);
+  box-shadow: 0 8px 30px rgba(59,140,255,0.12), inset 0 -2px 8px rgba(255,255,255,0.12);
+  transform: translateZ(0);
+  transition: transform 180ms cubic-bezier(.2,.9,.3,1), box-shadow 180ms, opacity 150ms;
+}
+.toggle-btn:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 18px 40px rgba(59,140,255,0.14); }
+.toggle-btn:active { transform: translateY(0) scale(.99); }
+.toggle-btn:focus { outline: 3px solid rgba(59,140,255,0.16); }
+
+/* Running variant */
+.toggle-btn.running {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff9a6b 50%, #ffd36b 100%);
+  color: #0b0b0b;
+  box-shadow: 0 18px 50px rgba(255,107,107,0.18), inset 0 -3px 12px rgba(255,255,255,0.12);
+  transform: translateZ(0) scale(1.02);
+}
+
+/* small responsive touch */
+@media (max-width: 520px) {
+  .toggle-btn { padding: 10px 16px; font-size: 0.85rem; }
+}
+

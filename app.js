@@ -102,3 +102,110 @@ function clearAlert() {
   label.style.color = "";
   label.textContent = "Awaiting Sound…";
 }
+
+// --- SSE manager: start/stop live connection and map events to UI ---
+const SSEManager = (function(){
+  const url = 'http://localhost:8080/api/stream';
+  let es = null;
+  let isRunning = false;
+  let retry = 1000;
+  let reconnectTimer = null;
+
+  function setStatus(text, on) {
+    const statusText = document.getElementById('status-text');
+    if (statusText) statusText.textContent = text;
+    const badge = document.getElementById('status-badge');
+    if (badge) {
+      badge.classList.toggle('on', !!on);
+      badge.classList.toggle('off', !on);
+    }
+  }
+
+  function handleMessage(e) {
+    try {
+      const data = JSON.parse(e.data);
+      const type = data.type;
+      if (type === 'SIREN_ALARM') {
+        if (state.enabled.siren) fireAlert('siren');
+      } else if (type === 'FIRE_ALARM') {
+        if (state.enabled.fire) fireAlert('fire');
+      } else if (type === 'IDLE' || type === 'HOME') {
+        clearAlert();
+      }
+    } catch (err) {
+      console.warn('Failed parsing SSE message', err, e.data);
+    }
+  }
+
+  function connect() {
+    if (!isRunning) return;
+    try {
+      es = new EventSource(url);
+    } catch (err) {
+      scheduleReconnect();
+      return;
+    }
+
+    es.onopen = () => {
+      console.log('SSE connected');
+      retry = 1000;
+      setStatus('Connected', true);
+    };
+
+    es.onmessage = handleMessage;
+
+    es.onerror = () => {
+      console.warn('SSE error — attempting reconnect');
+      setStatus('Disconnected', false);
+      try { es.close(); } catch(_) {}
+      es = null;
+      scheduleReconnect();
+    };
+  }
+
+  function scheduleReconnect() {
+    if (!isRunning) return;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(() => {
+      retry = Math.min(30000, retry * 2);
+      connect();
+    }, retry);
+  }
+
+  function start() {
+    if (isRunning) return;
+    isRunning = true;
+    retry = 1000;
+    setStatus('Connecting…', true);
+    connect();
+  }
+
+  function stop() {
+    if (!isRunning) return;
+    isRunning = false;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (es) try { es.close(); } catch(_) {}
+    es = null;
+    setStatus('Stopped', false);
+    clearAlert();
+  }
+
+  return { start, stop, get running(){ return isRunning; } };
+})();
+
+// Wire the toggle button
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('toggle-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (SSEManager.running) {
+      SSEManager.stop();
+      btn.textContent = 'Start';
+      btn.classList.remove('running');
+    } else {
+      SSEManager.start();
+      btn.textContent = 'Stop';
+      btn.classList.add('running');
+    }
+  });
+});
