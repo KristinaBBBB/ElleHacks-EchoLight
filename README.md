@@ -34,6 +34,7 @@ EchoLight consists of three components that communicate through a locally hosted
    - `POST /api/events` - Receives detection events from Python.
    - `GET /api/stream` - Streams events to connected clients using SSE.
    - `GET /api/health` - Provides a basic backend health check.
+
    The backend also stores the most recent event and sends it to newly connected clients.
 
 ### 3. Web frontend
