@@ -74,7 +74,10 @@ cd ElleHacks-EchoLight
    
 ### 3. Start audio detection
    Open another terminal in the repository's root directory.
-   Install the Python dependencies: `pip install numpy sounddevice requests`
+   Install the Python dependencies: 
+   ```bash
+   pip install numpy sounddevice requests
+   ```
 
    Before running the script, check the `device_id` variable in `audio_detection.py`. It is currently set to 7, which was the audio device index used during development and may need to be changed for another computer.
 
