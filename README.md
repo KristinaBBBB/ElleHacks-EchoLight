@@ -94,4 +94,4 @@ The project combines Python audio processing, a Java Spring Boot backend, and a 
 See the [Devpost submission](https://devpost.com/software/echolight) for the project presentation and team information.
 
 ## License
-This project is licensed under the MIT License. See [LICENSE](LICENSE)
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
